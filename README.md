@@ -206,19 +206,6 @@ names:
 
 如曾修改过标签编号，请先核对原始标注和权重的训练定义；项目已有的编号恢复工具说明见 [评估文档](docs/paper_evaluation.md)。
 
-## 权重准备
-
-| 权重 | 用途 | 配置位置 |
-| --- | --- | --- |
-| `Slot-YOLO/slot_pt/best_loss.pth` | SlotDCE 初始化 | 训练 YAML 的 `enhancer.weights` |
-| 对应数据集的 `best.pt` | 完整 DSH-OBB 验证、预测和论文评估 | `test.weights`、评估 YAML 的 `experiments[].weights` 或命令行 `--weights` |
-| 同一实验的 `last.pt` | 恢复中断的训练 | 匹配结构的训练配置及 `train.resume` |
-
-默认配置为 `enhancer.pretrained: true`，训练前需准备相应 SlotDCE 初始化文件。检测器的 `train.pretrained: false` 表示检测器从头训练，与增强器是否使用初始化权重是两个独立设置。
-
-已有完整检测 checkpoint 时，可直接用于验证和预测；不需要重新进行增强器初始化训练。公开检测权重的下载地址将在发布后补充，目前请将自己训练或已获取的权重路径写入配置。
-
-## 训练
 
 ### 1. 创建本机实验配置
 
