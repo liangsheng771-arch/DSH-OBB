@@ -1,0 +1,13 @@
+# Final Geometry CCFF v1 OCM inference. Run with Slot-YOLO/run_ocm_visualization.py.
+weights: /home/zhangyuhang/proj/ultralytics/Slot-YOLO/newoutput/yolov8s/slotdce_isaf_RTDETRV2_hyE_yolo_GEO_OCM/weights/best.pt
+data: ../datasets_config/OCM.yaml
+output_dir: ../newoutput/predict_output/yolov8s/slotdce_isaf_RTDETRV2_hyE_yolo_GEO_OCM
+
+expected_images: 1370
+device: 4
+imgsz: 640
+batch: 16
+conf: 0.25
+iou: 0.7
+max_det: 300
+line_width: 2

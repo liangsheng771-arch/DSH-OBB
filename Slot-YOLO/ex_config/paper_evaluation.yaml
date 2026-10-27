@@ -1,0 +1,52 @@
+# 普通运行脚本：python Slot-YOLO/run_paper_evaluation.py
+# 所有相对路径均相对于本 YAML；对比模型共同使用 evaluation，避免改动指标核心。
+python_paths:
+  - ../.. # 本项目的 ultralytics 源码
+  - ..    # Slot-YOLO 自定义 checkpoint 类
+output_dir: ../newoutput/paper_evaluation
+
+evaluation:
+  task: obb
+  device: 4          # 服务器 GPU 编号；也可在命令行用 --device 0 覆盖
+  imgsz: 640
+  batch: 1
+  rect: false        # 固定 640x640；所有对比模型采用相同输入尺寸
+  half: false        # FP32；对比实验请统一，不要混合 FP16/FP32
+  workers: 4
+  conf: 0.001        # AP 使用低阈值；不是可视化时的 0.25
+  iou: 0.7           # NMS 阈值；AP 的 IoU 阈值固定为 0.50:0.05:0.95
+  max_det: 300
+  fps_column: inference # 表格 FPS=1000/inference_ms；同时保存 pipeline FPS
+  flops_method: torch   # 完整 640x640 forward，包含支持的卷积/注意力矩阵乘法
+                       # 可选 thop/none；所有对比模型应统一，失败时显示 --，不悄悄换算法
+
+experiments:
+  - id: OCM
+    enabled: true
+    dataset: OCM
+    method: Slot-YOLO
+    adapter: ultralytics
+    loader: ultralytics:YOLO
+    imports: [slot_yolo]
+    weights: /home/zhangyuhang/proj/ultralytics/Slot-YOLO/newoutput/yolov8s/slotdce_isaf_RTDETRV2_hyE_yolo_GEO_OCM/weights/best.pt
+    data: ../datasets_config/OCM.yaml
+    data_root: /home/zhangyuhang/dataset/Coal_mine/OCM
+    split: val # 与 ai4rs 的四组对比统一使用验证集
+    backbone: YOLOv8s (C2f + SPPF)
+    expected_backbone: yolov8s
+    epochs: null # 优先读取权重上级运行目录的 results.csv；缺失时可手动填实际训练轮数
+
+  - id: CMDPC
+    enabled: true
+    dataset: CMDPC
+    method: Slot-YOLO
+    adapter: ultralytics
+    loader: ultralytics:YOLO
+    imports: [slot_yolo]
+    weights: /home/zhangyuhang/proj/ultralytics/Slot-YOLO/newoutput/yolov8s/slotdce_isaf_RTDETRV2_hyE_yolo_GEO_CMDPC/weights/best.pt
+    data: ../datasets_config/CMDPC.yaml # 五类，保留 Drill_pipec；不是四类的 CMDPC_2.yaml
+    data_root: /home/zhangyuhang/dataset/Coal_mine/CMDPC_yolo_obb # 覆盖旧训练 YAML 中过时的根目录
+    split: val # 本数据没有 test，按用户要求使用 val，并在所有汇总中明确标注
+    backbone: YOLOv8s (C2f + SPPF)
+    expected_backbone: yolov8s
+    epochs: null

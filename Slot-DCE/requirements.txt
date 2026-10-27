@@ -1,0 +1,7 @@
+torch>=2.1
+Pillow>=9.5
+PyYAML>=6.0
+numpy>=1.24
+matplotlib>=3.7
+tensorboard>=2.12
+pytest>=7.4

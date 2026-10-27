@@ -1,0 +1,17 @@
+Make a targeted wiring repair on the reference figure. Keep ALL rectangles, labels, dashed amber guidance, right-hand neck and head, background, colors, typography, positions and titles unchanged. The ONLY area to change is the solid blue/teal wires in the narrow space between the right edges of the two backbone blocks and the left edges of the three fusion blocks. Remove EVERY existing solid wire segment in this corridor (roughly x=522 to 660, y=170 to 600), including ALL vertical segments and the extra "P4" text stranded halfway between modules. Do not just shift the existing wires: completely erase them and draw six fresh wires.
+
+Crucial simplification: use ONLY STRAIGHT line segments connecting each source port directly to its target port. Each of the six wires must be a SINGLE STRAIGHT ARROW. Some arrows are diagonal. Absolutely NO right-angle elbows, NO vertical shared buses, NO wire merging, NO branching, NO junction dots in this feature corridor. Crossed arrows are independent wires; use tiny white bridge gaps where the paths cross.
+
+The six direct straight arrows, exactly:
+- BLUE Raw P3 output at (522,187) directly to top ISAF input at (654,188), labeled R3.
+- BLUE Raw P4 output at (522,235) diagonally down-right directly to middle ISAF input at (660,355), labeled R4.
+- BLUE Raw P5 output at (522,283) diagonally down-right directly to P5ResidualFusion upper input at (654,519), labeled R5.
+- TEAL Enhanced P3 output at (523,499) diagonally up-right directly to top ISAF lower input at (654,247), labeled E3.
+- TEAL Enhanced P4 output at (523,542) diagonally up-right directly to middle ISAF lower input at (660,405), labeled E4.
+- TEAL Enhanced P5 output at (523,587) directly right to P5ResidualFusion lower input at (654,585), labeled E5.
+
+Keep P3/P4/P5 source labels next to the backbone ports. Keep R3/E3, R4/E4, R5/E5 labels near the target arrowheads. Place the target labels without covering the diagonal lines.
+
+No enhanced P4 arrow may end at P5ResidualFusion. No enhanced P3 arrow may end at middle ISAF. Raw P5 must be BLUE ALL THE WAY from the raw backbone to its residual fusion input. No floating or unconnected input wires are allowed. There must be exactly TWO solid feature arrows terminating at each fusion module. Keep the dashed Slot guidance correct and unchanged: two ISAF destinations and one IG-LSF-AIFI destination, no guidance into P5ResidualFusion.
+
+The entire diagram remains a clean paper architecture reference for Geometry CCFF v1. Render only the corrected figure.

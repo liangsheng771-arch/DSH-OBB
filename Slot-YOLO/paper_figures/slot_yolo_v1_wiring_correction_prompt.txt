@@ -1,0 +1,25 @@
+Edit the supplied image as a precise scientific diagram correction. Preserve the existing layout, headings, module rectangles, exact module names, palette, typography, three regions, backbone sharing annotation, CCFF v1 behavior, three output ports, head and legend. Correct ONLY the left-side solid feature wiring and the amber dashed guidance wiring. Scientific connections must be exact. Image dimensions in the reference are approximately 1840 x 855; the coordinates below are guides, not new text to display.
+
+FIRST erase all existing blue and teal feature wires between the two backbone outputs and the three fusion inputs, including ambiguous vertical shared tracks. Keep the P3/P4/P5 labels outside the backbone. Replace them by six independent paths. None of these six paths shares a vertical segment with another path. At wire crossings use a small bridge/crossover gap so it is crystal clear the crossing is NOT connected. Use NO junction dots on the six feature wires. There must be exactly TWO incoming feature arrows to each of the three fusion modules:
+
+1) Raw P3 from the upper backbone right edge near (522,186) -> directly right -> upper input of top ISAF near (635,190).
+2) Enhanced P3 from lower backbone right edge near (526,498) -> right to x590 -> up to y245 -> right -> lower input of top ISAF near (635,245). This teal wire ends ONLY at top ISAF, never at P5ResidualFusion.
+3) Raw P4 from upper backbone near (522,233) -> right to x570 -> down to y355 -> right -> upper input of middle ISAF near (635,355). This blue P4 wire MUST NOT feed top ISAF.
+4) Enhanced P4 from lower backbone near (526,542) -> right to x608 -> up to y410 -> right -> lower input of middle ISAF near (635,410). This teal P4 wire ends ONLY at middle ISAF.
+5) Raw P5 from upper backbone near (522,280) -> right to x553 -> down to y520 -> right -> upper input of P5ResidualFusion near (624,520).
+6) Enhanced P5 from lower backbone near (526,586) -> directly right -> lower input of P5ResidualFusion near (624,575), using a tiny dogleg if needed.
+
+These paths may be arranged slightly differently for legibility, but the source P3/P4/P5 and destination P3/P4/P5 correspondence must be exactly as specified. Add tiny short port labels "R3" and "E3" beside top ISAF's two arrows, "R4" and "E4" beside middle ISAF's two arrows, "R5" and "E5" beside P5ResidualFusion's two arrows if that materially improves certainty. Do not connect any feature lines to the wrong fusion module or merge raw/enhanced lines before the fusion block. No fused features are fed back into the backbone.
+
+SECOND erase the complete existing vertical amber dashed wire at x680 from the bottom guidance bus to the ISAFs. In particular REMOVE the arrow entering the bottom of P5ResidualFusion. P5ResidualFusion receives NO Slot guidance.
+
+Redraw the SlotDCE guidance:
+Keep the amber dashed wire from the BOTTOM of SlotDCE at about (222,584) down to the bottom horizontal bus at y686. The bus extends right to the bottom of IG-LSF-AIFI.
+Make one amber dashed vertical trunk at x840, CLEARLY TO THE RIGHT of the entire P5ResidualFusion rectangle (which ends near x819), rising from y686 to y296. Thus it does not cross through P5ResidualFusion.
+From that trunk branch LEFT at y296 to x785, then turn UP a short distance and put an upward arrow into the BOTTOM RIGHT part of top ISAF at (785,278).
+From the same trunk branch LEFT at y465 to x785, then turn UP a short distance and put an upward arrow into the BOTTOM RIGHT part of middle ISAF at (785,443).
+Keep the separate amber dashed arrow from the bus at x963 UP into the BOTTOM of IG-LSF-AIFI at (963,594).
+Amber junction dots belong only on the true guidance-bus fanout points, such as (840,686) and (840,465). A dashed guidance wire crossing a solid P4 or P5 output is NOT a connection: show a slight crossover gap, no dot.
+The dashed guidance route must end at exactly THREE modules: top ISAF, middle ISAF, IG-LSF-AIFI. It must NEVER enter P5ResidualFusion, either backbone, CCFF or OBB head.
+
+Keep the solid fused output arrows from ISAF3 to CCFF, ISAF4 to CCFF and P5ResidualFusion to IG-LSF-AIFI to CCFF unchanged. Keep the Geometry CCFF v1 large box black-boxed, outputs refined P3 and native P4/P5 unchanged. Make the corrected figure impeccable, publication-like and comfortably legible. Do not display coordinate numbers or these instructions in the image.

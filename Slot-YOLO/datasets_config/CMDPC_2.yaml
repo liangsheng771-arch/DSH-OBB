@@ -1,0 +1,9 @@
+path: /home/zhangyuhang/dataset/Coal_mine/CMDPC_yolo_obb/
+train: images/train
+val: images/val
+
+names:
+  0: 'Drill_body'
+  1: 'Drill_head'
+  2: 'Drill_pipe'
+  3: 'Drill_tail'

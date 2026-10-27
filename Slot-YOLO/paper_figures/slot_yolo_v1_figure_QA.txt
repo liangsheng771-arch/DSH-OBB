@@ -1,0 +1,28 @@
+Delivered figure: slot_yolo_overall_ccff_v1.png
+Type: raster architecture schematic for manual Visio redraw.
+Version: Geometry CCFF v1, as explicitly confirmed by the user.
+Creation: built-in image_gen; targeted wiring corrections applied using image_gen.
+
+Visual and architecture audit:
+PASS: raw image feeds the raw YOLOv8s branch and SlotDCE.
+PASS: SlotDCE enhanced image feeds the enhanced YOLOv8s branch.
+PASS: raw and enhanced P3 feature arrows terminate at P3 ISAF.
+PASS: raw and enhanced P4 feature arrows terminate at P4 ISAF.
+PASS: raw and enhanced P5 feature arrows terminate at P5ResidualFusion.
+PASS: no fused feature is fed back into a backbone branch.
+PASS: shared weights and separate BN are annotated.
+PASS: guidance terminates at both ISAF blocks and IG-LSF-AIFI; it does not enter P5ResidualFusion.
+PASS: only fused P5 enters IG-LSF-AIFI.
+PASS: Geometry CCFF v1 outputs refined P3 and native P4/P5.
+PASS: one three-scale YOLOv8s OBB head receives all neck outputs.
+PASS: stride labels are 8/16/32; channel note is 128/256/512.
+PASS: no internal module diagrams, empirical performance, vector exports or prediction imagery.
+
+Diagram conventions:
+- R3/R4/R5 = raw-branch scale features.
+- E3/E4/E5 = enhanced-branch scale features.
+- Crossed solid feature lines without a junction dot are not connected.
+- Dashed amber guidance lines crossing solid output lines are not connected.
+- Guidance adaptation and geometry auxiliary supervision are omitted at this overall-model abstraction level.
+
+Use the accompanying redraw notes for the exact data-flow specification and generation prompt. The PNG is a paper-layout reference, to be manually redrawn as requested.

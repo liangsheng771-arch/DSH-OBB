@@ -1,0 +1,79 @@
+Slot-YOLO overall architecture reference — Geometry CCFF v1
+
+本图依据用户确认的 v1 配置与当前代码绘制，用于论文整体结构图和 Visio 重绘参考。格式为 PNG，不展开模块内部结构。
+配置：ex_config/config_RTDETRV2_hyE_yolo_geometry.yaml
+图像生成方式：内置 image_gen；图内文本与连接需以以下事实为准。
+
+连接关系：
+1. RGB image -> YOLOv8s backbone (Raw branch)
+2. RGB image -> SlotDCE -> YOLOv8s backbone (Enhanced branch)
+3. Raw P3 + Enhanced P3 + scale-aligned Slot guidance -> ISAF -> fused P3
+4. Raw P4 + Enhanced P4 + scale-aligned Slot guidance -> ISAF -> fused P4
+5. Raw P5 + Enhanced P5 -> P5ResidualFusion -> fused P5
+6. fused P5 + scale-aligned raw Slot guidance -> IG-LSF-AIFI -> A5
+7. fused P3 + fused P4 + A5 -> Geometry CCFF v1 -> output P3/P4/P5
+8. output P3/P4/P5 -> YOLOv8s OBB head -> oriented detections
+
+重绘要点：
+- 骨干两路独立传播，共享非 BN 的可学习参数，BN 参数和统计量独立；融合结果不送回下一骨干阶段。
+- P3/P4 融合是 ISAF；P5 融合是 P5ResidualFusion，不能把 P5 标成 ISAF。
+- IG-LSF-AIFI 只作用于 P5。
+- ISAF 实际使用 guidance adapter 生成的 16 通道引导；IG-LSF-AIFI 使用对应尺度的原始 10 通道 SlotDCE 引导。整体图用同一虚线引导表示，各自适配操作省略。
+- Geometry CCFF v1 包括原生 CCFF 和仅作用于 P3 的 GeometryGuidedP3Fusion。P4/P5 不接收几何修正后的 P3 反馈。
+- v1 的几何模块以原生 P3 和 top-down P4 lateral 特征为输入；整体黑盒图将这些过程封装在 Geometry CCFF v1 中。
+- P3/P4/P5 的 stride 为 8/16/32，通道数为 128/256/512。
+- OBB 标签在训练中监督几何场，推理不需要标签。本整体图省略训练专用损失和监督箭头。
+- 这是结构与版式参考，不包含模型性能结果或真实检测示例。
+
+最终图像生成提示词：
+Create one highly polished, publication-quality scientific neural-network OVERALL ARCHITECTURE FIGURE for "Slot-YOLO", in the restrained visual language of CVPR/ICCV/TPAMI and Nature Machine Intelligence papers. This is a raster PNG reference that a scientist will redraw manually in Microsoft Visio. It must look like a carefully typeset research-paper architecture illustration, not a presentation slide. Wide landscape aspect ratio about 2.15:1, high resolution, white background, generous margins, exceptionally crisp English labels, flat 2D shapes, thin consistent outlines, restrained pale blue / desaturated teal / pale amber palette, dark slate text, clean Arial-like sans-serif. No logos, photorealistic backgrounds, 3D blocks, glow, shadows, gradients, icons, marketing graphics, fabricated results, charts, giant title, or decorative artwork.
+
+VISUAL HIERARCHY:
+Three left-to-right lightly outlined grouping regions, titled in small bold typography:
+(a) "Dual-branch backbone & fusion"
+(b) "Hybrid encoder neck"
+(c) "OBB head"
+Each module is an opaque named rectangular block with gently rounded corners. NO module internal architecture. Keep the graph calm, simple, airy, aligned, and easy to trace. Use short labels at ports to identify feature levels. The overall figure should have only the necessary module names and concise feature labels.
+
+EXACT ARCHITECTURE — SCIENTIFIC ACCURACY IS ESSENTIAL:
+One input block at the far left labeled "RGB image" branches into two distinct paths.
+The top raw-image path directly enters a pale-blue block labelled "YOLOv8s backbone" with secondary label "Raw branch".
+The lower path passes through a pale-amber block labelled "SlotDCE", then enters a desaturated-teal block labelled "YOLOv8s backbone" with secondary label "Enhanced branch".
+These are two independently propagated branches. Place the raw branch above the enhanced branch on the left portion of region (a).
+Both backbone blocks have three output ports, individually labeled P3, P4 and P5.
+Show a fine dotted link between the two backbone blocks labeled "Shared weights; separate BN". This is a weight-sharing annotation, not a feature-flow arrow.
+To the right of these two branches, arrange exactly THREE separate fusion blocks in a clean vertical column:
+top: "ISAF" with small scale label "P3"
+middle: "ISAF" with small scale label "P4"
+bottom: "P5ResidualFusion" with small scale label "P5".
+Use modest straight/orthogonal routing and distinct blue/teal feature lines. For each scale i=3,4,5, BOTH the raw feature Pi and the enhanced feature Pi go ONLY to the corresponding fusion block. Label lines/ports to make the scale correspondence unambiguous. Do not connect P3 to a P4 fusion or P5 to any ISAF. Do not feed fused outputs back to either backbone. No fused-feature feedback between backbone stages.
+
+Neck region (b):
+The fused P3 output of top ISAF goes directly into the upper input port of one large tall named block "Geometry CCFF v1".
+The fused P4 output of middle ISAF goes directly into the middle input port of that same "Geometry CCFF v1" block.
+The fused P5 output from "P5ResidualFusion" goes through one distinct pale-amber block "IG-LSF-AIFI", then into the lower input port of "Geometry CCFF v1".
+IG-LSF-AIFI processes ONLY P5. P3 and P4 MUST bypass IG-LSF-AIFI.
+The tall Geometry CCFF v1 block represents the COMPLETE cross-scale fusion module, so do not draw any internal layers, pyramid arrows, attention, convolutions, or sampling diagrams within it.
+Give Geometry CCFF v1 the small secondary annotation "Geometry refinement at P3". It produces three independent right-side output ports, top P3, middle P4, bottom P5.
+For this v1 architecture geometry refinement changes ONLY the output P3. P4 and P5 are native CCFF outputs. You may label the P3 output "refined" in a small amber accent, and P4/P5 outputs "native" in slate. DO NOT depict the v1.1 bidirectional geometry-feedback flow P3 -> P4 -> P5. NEVER write v1.1 or GeometryAwareBiCCFF.
+
+Guidance path:
+SlotDCE has an auxiliary output labelled "Slot guidance". Draw a restrained amber DASHED route outside the main feature lines, fanning into both ISAF blocks and into IG-LSF-AIFI, with arrowheads at these THREE destinations ONLY.
+This dashed route represents scale-aligned guidance. Guidance adapters and resizing are abstracted inside these high-level blocks, not drawn as extra modules.
+DO NOT send Slot guidance to P5ResidualFusion, to the raw or enhanced backbone, to Geometry CCFF, or to the OBB head.
+Keep guidance lines cleanly separated from solid feature arrows. Prefer a single routed dashed guidance bus along the bottom margin, with carefully placed vertical dashed branches. Avoid ambiguous junctions. A crossed wire is not a connection; show small dots ONLY for actual bus fan-out junctions.
+
+Head region (c):
+The three output feature ports from Geometry CCFF v1 enter the three corresponding scale ports of ONE tall pale-blue module labelled "YOLOv8s OBB head".
+Mark the inputs "P3 / 8", "P4 / 16", "P5 / 32". These are strides, not numbers of layers.
+The single head has one output arrow to a small text-only box labelled "Oriented detections".
+Do not replace this head with a DETR transformer decoder. Do not draw individual regression/classification subnets.
+
+Typography and finishing:
+Use exact spellings "SlotDCE", "ISAF", "P5ResidualFusion", "IG-LSF-AIFI", "Geometry CCFF v1", "YOLOv8s OBB head".
+Retain clearly readable module names at reduced paper size. Subordinate labels can be smaller but never microscopic.
+At the bottom, add a minimal two-item line-key with thin samples: "Feature flow" (solid line) and "Slot guidance" (amber dashed line).
+Add one short technical note, if it fits without crowding: "P3/P4/P5 channels: 128/256/512".
+No extra narrative text.
+Use visual grouping, consistent aligned rectangles, ample spacing around arrows, and subtle accents to highlight SlotDCE, ISAF, IG-LSF-AIFI, and Geometry CCFF v1. Render only the clean finished figure.
+

@@ -1,0 +1,7 @@
+path: /home/zhangyuhang/dataset/ScienceDB_yolo
+train: images/train
+val: images/val
+test: images/test
+
+nc: 5
+names: ['chuck', 'coal_miner', 'drill_pipe', 'gripper', 'mine_safety_helmet']
