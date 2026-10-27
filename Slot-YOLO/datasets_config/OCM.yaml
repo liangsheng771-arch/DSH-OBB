@@ -1,0 +1,18 @@
+path: "/home/zhangyuhang/dataset/Coal_mine/OCM/"
+
+train: images/train
+val: images/val
+test: images/test  
+
+obb: True
+
+nc: 6  
+
+names: [
+  "Drill_body",
+  "Drill_tail",
+  "Drill_head",
+  "Drill_pipe",
+  "Drill_bit",
+  "worker"
+]

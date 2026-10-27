@@ -449,6 +449,7 @@ class BaseTrainer:
                             x["momentum"] = np.interp(ni, xi, [self.args.warmup_momentum, self.args.momentum])
 
                 # Forward
+                retry_oom = False
                 try:
                     with autocast(self.amp):
                         batch = self.preprocess_batch(batch)
@@ -470,10 +471,11 @@ class BaseTrainer:
                 except RuntimeError as e:
                     is_oom = isinstance(e, torch.cuda.OutOfMemoryError)
                     if not is_oom and not any(
-                        s in str(e) for s in ("CUDNN_STATUS_INTERNAL_ERROR", "unable to find an engine")
+                        s in str(e)
+                        for s in ("CUBLAS_STATUS_ALLOC_FAILED", "CUDNN_STATUS_INTERNAL_ERROR", "unable to find an engine")
                     ):
                         raise
-                    if epoch > self.start_epoch or self._oom_retries >= 3 or RANK != -1:
+                    if epoch > self.start_epoch or self._oom_retries >= 3 or RANK != -1 or self.batch_size <= 1:
                         raise  # only auto-reduce during first epoch on single GPU, max 3 retries
                     self._oom_retries += 1
                     old_batch = self.batch_size
@@ -482,8 +484,13 @@ class BaseTrainer:
                         f"{'CUDA out of memory' if is_oom else 'CUDA backend memory error'} with batch={old_batch}. "
                         f"Reducing to batch={self.batch_size} and retrying ({self._oom_retries}/3)."
                     )
+                    retry_oom = True
+
+                if retry_oom:
+                    # Leave the except block first: its traceback keeps failed forward/backward tensors alive.
                     batch = loss = preds = None
                     self.loss = self.loss_items = self.tloss = None
+                    self.optimizer.zero_grad(set_to_none=True)  # release partially accumulated gradients before clearing
                     self._clear_memory()
                     self._build_train_pipeline()  # rebuild dataloaders, optimizer, scheduler
                     self.scheduler.last_epoch = self.start_epoch - 1
@@ -492,6 +499,10 @@ class BaseTrainer:
                     last_opt_step = -1
                     self.optimizer.zero_grad()
                     break  # restart epoch loop with reduced batch size
+
+                # Retain the loss value for callbacks/NaN recovery, but release its graph and checkpoint closures now.
+                self.loss = self.loss.detach()
+                loss = preds = None
                 if ni - last_opt_step >= self.accumulate:
                     self.optimizer_step()
                     last_opt_step = ni
@@ -530,6 +541,7 @@ class BaseTrainer:
                 # for/else: this block runs only when the for loop completes without break (no OOM retry)
                 self._oom_retries = 0  # reset OOM counter after successful first epoch
 
+            batch = None  # do not retain the last training images throughout validation and checkpoint saving
             if self._oom_retries and not self.stop:
                 continue  # OOM recovery broke the for loop, restart with reduced batch size
 

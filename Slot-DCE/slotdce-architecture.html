@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="SlotDCE Detector-Lite 当前模型结构与数据流">
+  <title>SlotDCE Detector-Lite · 模型结构</title>
+  <style>
+    :root{--bg:#f4f7fb;--paper:#fff;--ink:#17233a;--muted:#60708a;--blue:#246bfe;--blue-bg:#eef5ff;--orange:#ef7b2d;--orange-bg:#fff7ed;--green:#258568;--green-bg:#effaf6;--violet:#7555b8;--violet-bg:#f6f1ff;--line:#d8e1ed}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Microsoft YaHei",Arial,sans-serif;line-height:1.55}
+    main{width:min(1680px,calc(100% - 32px));margin:18px auto 40px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:30px;box-shadow:0 14px 40px rgba(30,55,90,.08)}
+    header{display:flex;justify-content:space-between;gap:30px;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:22px}
+    h1,h2,h3,p{margin:0} h1{font-size:30px} h2{font-size:19px} h3{font-size:15px}.eyebrow{font-weight:800;color:var(--blue);letter-spacing:.12em;font-size:12px;margin-bottom:6px}.lead{max-width:760px;color:var(--muted);text-align:right;font-size:13px}
+    .section{margin-top:22px}.title{display:flex;align-items:center;gap:9px;margin-bottom:12px}.number{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;background:var(--blue);color:#fff;font-weight:800;font-size:13px}
+    .flow{display:flex;align-items:stretch;gap:9px;overflow-x:auto;padding:2px}.arrow{display:grid;place-items:center;color:#8b9ab0;font-size:22px;min-width:20px}.card{min-width:190px;flex:1;padding:15px;border:1px solid var(--line);border-radius:13px;background:#fff}.card strong{display:block;font-size:14px;margin-bottom:5px}.card small{display:block;color:var(--muted);font-size:12px}.shape{display:inline-block;margin-top:9px;padding:3px 7px;border-radius:6px;background:#f2f5f9;color:#52637d;font:11px Consolas,monospace}
+    .blue{background:var(--blue-bg);border-color:#b8d2ff}.orange{background:var(--orange-bg);border-color:#ffd0aa}.green{background:var(--green-bg);border-color:#bfe8da}.violet{background:var(--violet-bg);border-color:#d9c9f5}
+    .grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}.slot{text-align:center;padding:14px 10px;border-radius:12px;border:1px solid var(--line)}.slot b{display:block;font-size:16px}.slot span{font-size:12px;color:var(--muted)}.positive{background:#edf9f3;border-color:#b9e5d0}.neutral{background:#f4f6f9}.negative{background:#fff2ee;border-color:#f5c7b8}
+    .branches{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.branch{padding:15px;border-radius:13px;border:1px solid var(--line)}.branch p{font-size:12px;color:var(--muted);margin-top:5px}
+    .note{margin-top:10px;padding:10px 13px;border-left:3px solid var(--blue);background:#f7f9fc;color:var(--muted);font-size:12px}.loss{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.formula{margin-top:12px;padding:12px;border-radius:10px;background:#19263c;color:#fff;text-align:center;font:14px Consolas,monospace}
+    footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    @media(max-width:980px){header{display:block}.lead{text-align:left;margin-top:10px}.branches,.loss{grid-template-columns:1fr 1fr}.grid{overflow-x:auto}.flow{align-items:stretch}}
+    @media(max-width:620px){main{width:100%;margin:0;border-radius:0;padding:18px}.branches,.loss{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">SLOTDCE DETECTOR-LITE</div><h1>矿井不均匀照明修正模型</h1></div>
+    <p class="lead">当前唯一数据流：无损降采样编码 → 自适应有序曝光 Slot → 方向受限色调渲染 → 全分辨率细节重建。训练与推理执行同一个前向过程。</p>
+  </header>
+
+  <section class="section">
+    <div class="title"><span class="number">1</span><h2>输入与曝光分析</h2></div>
+    <div class="flow">
+      <div class="card"><strong>RGB 输入</strong><small>归一化至 [0,1]</small><span class="shape">[B,3,H,W]</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>亮度与颜色统计</strong><small>Y、RGB 最大/最小值、饱和度</small><span class="shape">[B,1,H,W]</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>边缘感知照明</strong><small>半分辨率低频统计后回到 H×W</small><span class="shape">illumination</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>连续软权重</strong><small>暗部、亮场、白光、灯芯、邻灯与光晕</small><span class="shape">6 × [B,1,H,W]</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="title"><span class="number">2</span><h2>H/4 共享特征编码</h2></div>
+    <div class="flow">
+      <div class="card blue"><strong>PixelUnshuffle ×4</strong><small>只重排像素，不丢弃空间信息；1×1 投影到 48 通道</small><span class="shape">[B,48,⌈H/4⌉,⌈W/4⌉]</span></div><div class="arrow">→</div>
+      <div class="card blue"><strong>48 通道特征</strong><small>深度可分离残差块 → 深度卷积 + 1×1 → 残差块</small></div><div class="arrow">→</div>
+      <div class="card blue"><strong>48 → 64</strong><small>深度卷积负责空间混合，1×1 负责通道混合</small></div><div class="arrow">→</div>
+      <div class="card blue"><strong>多尺度上下文</strong><small>三个深度可分离残差块，d=1/2/3</small><span class="shape">features [B,64,H4,W4]</span></div>
+    </div>
+    <p class="note">所有可学习 3×3 空间卷积都在 H/4 网格执行；原图分辨率只保留亮度分析、显式渲染和 Retinex 细节运算。</p>
+  </section>
+
+  <section class="section">
+    <div class="title"><span class="number">3</span><h2>自适应先验与有序 Slot 路由</h2></div>
+    <div class="flow">
+      <div class="card orange"><strong>图像曝光描述</strong><small>16-bin 软直方图 + 亮度均值 + 标准差</small><span class="shape">18-D</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>轻量 MLP</strong><small>预测五个正区间宽度；累计边界产生严格有序中心与 σ</small><span class="shape">18 → 16 → 5</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>内容 + 曝光先验</strong><small>content logits 与高斯曝光 logits 相加后 softmax</small><span class="shape">attention [B,5,H4,W4]</span></div><div class="arrow">→</div>
+      <div class="card orange"><strong>Slot 聚合与强度</strong><small>注意力加权特征、使用率和中心共同预测每个 Slot 强度</small><span class="shape">slots [B,5,64]</span></div>
+    </div>
+    <div class="grid" style="margin-top:11px">
+      <div class="slot positive"><b>S1</b><span>深暗区 · 只能提亮</span></div><div class="slot positive"><b>S2</b><span>暗区 · 只能提亮</span></div><div class="slot neutral"><b>S3</b><span>中性 · 增益固定为 0</span></div><div class="slot negative"><b>S4</b><span>较亮区 · 只能压暗</span></div><div class="slot negative"><b>S5</b><span>最亮/白光 · 只能压暗</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="title"><span class="number">4</span><h2>共享预测头与四类控制量</h2></div>
+    <div class="branches">
+      <div class="branch blue"><h3>局部强度头</h3><p>对暗部、亮场、白光 Slot 强度做有界空间调制。</p></div>
+      <div class="branch orange"><h3>光晕头</h3><p>结合小/大邻域光幕增量，预测相对压暗与光幕移除。</p></div>
+      <div class="branch green"><h3>细节头</h3><p>预测细/中/粗三尺度对数反射率增益及可靠度。</p></div>
+      <div class="branch violet"><h3>饱和恢复头</h3><p>PixelUnshuffle ×4 后预测 RGB 残差与恢复置信度。</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="title"><span class="number">5</span><h2>方向受限渲染与 RGB 输出</h2></div>
+    <div class="flow">
+      <div class="card green"><strong>低频色调修正</strong><small>暗部增加正 ΔY；亮场、白光、灯芯和光晕增加负 ΔY</small></div><div class="arrow">→</div>
+      <div class="card green"><strong>防黑环补偿</strong><small>用邻域亮度下限限制光晕移除，避免边缘形成黑圈</small></div><div class="arrow">→</div>
+      <div class="card green"><strong>Retinex 细节重建</strong><small>只增强输入中仍可靠存在的多尺度结构</small></div><div class="arrow">→</div>
+      <div class="card green"><strong>恢复与色域约束</strong><small>融合可信饱和恢复，保持 RGB 比例和输出范围</small><span class="shape">enhanced [B,3,H,W]</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="title"><span class="number">6</span><h2>无配对训练与四项损失</h2></div>
+    <div class="loss">
+      <div class="branch orange"><h3>L<sub>tone</sub></h3><p>暗部提亮、亮场/白光/灯芯压暗与光晕目标。</p></div>
+      <div class="branch green"><h3>L<sub>texture</sub></h3><p>可靠区域对数亮度梯度保持。</p></div>
+      <div class="branch violet"><h3>L<sub>recovery</sub></h3><p>同一无配对输入合成过曝后的 RGB 恢复。</p></div>
+      <div class="branch blue"><h3>L<sub>smooth</sub></h3><p>不跨真实边缘的色调场与光晕场平滑。</p></div>
+    </div>
+    <div class="formula">L = L_tone + 0.25 L_texture + 0.50 L_recovery + 0.05 L_smooth</div>
+  </section>
+
+  <footer>当前实现：68,819 个可学习参数；仅支持 <code>slotdce_v9_8_detector_lite</code>；无旧版本分支、checkpoint 迁移或推理后处理。</footer>
+</main>
+</body>
+</html>

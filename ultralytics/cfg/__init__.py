@@ -1,11 +1,10 @@
-# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+﻿# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 from __future__ import annotations
 
 import ast
 import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -35,141 +34,53 @@ from ultralytics.utils import (
     vscode_msg,
 )
 
-# Define valid solutions
-SOLUTION_MAP = {
-    "count": "ObjectCounter",
-    "crop": "ObjectCropper",
-    "blur": "ObjectBlurrer",
-    "workout": "AIGym",
-    "heatmap": "Heatmap",
-    "isegment": "InstanceSegmentation",
-    "visioneye": "VisionEye",
-    "speed": "SpeedEstimator",
-    "queue": "QueueManager",
-    "analytics": "Analytics",
-    "inference": "Inference",
-    "trackzone": "TrackZone",
-    "region": "RegionCounter",
-    "security": "SecurityAlarm",
-    "parking": "ParkingManagement",
-    "help": None,
-}
-
 # Define valid tasks and modes
-MODES = frozenset({"train", "val", "predict", "export", "track", "benchmark"})
-TASKS = frozenset({"detect", "segment", "classify", "pose", "obb", "semantic"})
+MODES = frozenset({"train", "val", "predict", "export", "benchmark"})
+TASKS = frozenset({"detect", "segment", "obb"})
 TASK2DATA = {
-    "detect": "coco8.yaml",
+    "detect": "ScienceDB.yaml",
     "segment": "coco8-seg.yaml",
-    "classify": "imagenet10",
-    "pose": "coco8-pose.yaml",
     "obb": "dota8.yaml",
-    "semantic": "cityscapes8.yaml",
 }
 TASK2CALIBRATIONDATA = {
-    "detect": "coco128.yaml",
+    "detect": "ScienceDB.yaml",
     "segment": "coco128-seg.yaml",
-    "classify": "imagenet100",
-    "pose": "coco8-pose.yaml",
     "obb": "dota128.yaml",
-    "semantic": "cityscapes8.yaml",
 }
 TASK2MODEL = {
     "detect": "yolo26n.pt",
     "segment": "yolo26n-seg.pt",
-    "classify": "yolo26n-cls.pt",
-    "pose": "yolo26n-pose.pt",
     "obb": "yolo26n-obb.pt",
-    "semantic": "yolo26n-sem.pt",
 }
 TASK2METRIC = {
     "detect": "metrics/mAP50-95(B)",
     "segment": "metrics/mAP50-95(M)",
-    "classify": "metrics/accuracy_top1",
-    "pose": "metrics/mAP50-95(P)",
     "obb": "metrics/mAP50-95(B)",
-    "semantic": "metrics/mIoU",
 }
-
 ARGV = sys.argv or ["", ""]  # sometimes sys.argv = []
 _YOLO_CLI_COMMAND = [sys.executable, "-m", "ultralytics.cfg.__init__"]
-SOLUTIONS_HELP_MSG = f"""
-    Arguments received: {["yolo", *ARGV[1:]]!s}. Ultralytics 'yolo solutions' usage overview:
-
-        yolo solutions SOLUTION ARGS
-
-        Where SOLUTION (optional) is one of {list(SOLUTION_MAP.keys())[:-1]}
-              ARGS (optional) are any number of custom 'arg=value' pairs like 'show_in=True' that override defaults
-                  at https://docs.ultralytics.com/usage/cfg
-
-    1. Call object counting solution
-        yolo solutions count source="path/to/video.mp4" region="[(20, 400), (1080, 400), (1080, 360), (20, 360)]"
-
-    2. Call heatmap solution
-        yolo solutions heatmap colormap=cv2.COLORMAP_PARULA model=yolo26n.pt
-
-    3. Call queue management solution
-        yolo solutions queue region="[(20, 400), (1080, 400), (1080, 360), (20, 360)]" model=yolo26n.pt
-
-    4. Call workout monitoring solution for push-ups
-        yolo solutions workout model=yolo26n-pose.pt kpts=[6, 8, 10]
-
-    5. Generate analytical graphs
-        yolo solutions analytics analytics_type="pie"
-
-    6. Track objects within specific zones
-        yolo solutions trackzone source="path/to/video.mp4" region="[(150, 150), (1130, 150), (1130, 570), (150, 570)]"
-
-    7. Count objects inside specific regions
-        yolo solutions region source="path/to/video.mp4" region="[(20, 400), (1080, 400), (1080, 360), (20, 360)]"
-
-    8. Run security alarm monitoring (email alerts require Python API)
-        yolo solutions security source="path/to/video.mp4"
-
-    9. Monitor parking occupancy (create JSON annotations first via Python ParkingPtsSelection)
-        yolo solutions parking source="path/to/video.mp4" json_file="bounding_boxes.json"
-
-    10. Streamlit real-time webcam inference GUI
-        yolo streamlit-predict
-    """
 CLI_HELP_MSG = f"""
-    Arguments received: {["yolo", *ARGV[1:]]!s}. Ultralytics 'yolo' commands use the following syntax:
+    Arguments received: {["yolo", *ARGV[1:]]!s}. This local YOLO build is trimmed for segmentation and OBB tasks.
 
         yolo TASK MODE ARGS
 
         Where   TASK (optional) is one of {list(TASKS)}
                 MODE (required) is one of {list(MODES)}
-                ARGS (optional) are any number of custom 'arg=value' pairs like 'imgsz=320' that override defaults.
-                    See all ARGS at https://docs.ultralytics.com/usage/cfg or with 'yolo cfg'
+                ARGS (optional) are custom 'arg=value' pairs like 'imgsz=640'.
 
-    1. Train a detection model for 10 epochs with an initial learning_rate of 0.01
-        yolo train data=coco8.yaml model=yolo26n.pt epochs=10 lr0=0.01
+    Examples:
+        yolo segment train data=coco8-seg.yaml model=yolo26n-seg.pt epochs=10
+        yolo obb train data=dota8.yaml model=yolo26n-obb.pt epochs=10
+        yolo predict model=yolo26n-seg.pt source=ultralytics/assets
+        yolo export model=yolo26n-obb.pt format=onnx
 
-    2. Predict a YouTube video using a pretrained segmentation model at image size 320:
-        yolo predict model=yolo26n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320
-
-    3. Validate a pretrained detection model at batch-size 1 and image size 640:
-        yolo val model=yolo26n.pt data=coco8.yaml batch=1 imgsz=640
-
-    4. Export a YOLO26n classification model to ONNX format at image size 224 by 128 (no TASK required)
-        yolo export model=yolo26n-cls.pt format=onnx imgsz=224,128
-
-    5. Ultralytics solutions usage
-        yolo solutions count or any of {list(SOLUTION_MAP.keys())[1:-1]} source="path/to/video.mp4"
-
-    6. Run special commands:
+    Special commands:
         yolo help
         yolo checks
         yolo version
         yolo settings
         yolo copy-cfg
         yolo cfg
-        yolo solutions help
-
-    Docs: https://docs.ultralytics.com
-    Solutions: https://docs.ultralytics.com/solutions/
-    Community: https://community.ultralytics.com
-    GitHub: https://github.com/ultralytics/ultralytics
     """
 
 # Quantization aliases: maps any accepted `quantize` value to its canonical form. The common case is the integer
@@ -653,35 +564,6 @@ def merge_equals_args(args: list[str]) -> list[str]:
     return new_args
 
 
-def handle_yolo_hub(args: list[str]) -> None:
-    """Handle Ultralytics HUB command-line interface (CLI) commands for authentication.
-
-    This function processes Ultralytics HUB CLI commands such as login and logout. It should be called when executing a
-    script with arguments related to HUB authentication.
-
-    Args:
-        args (list[str]): A list of command line arguments. The first argument should be either 'login' or 'logout'. For
-            'login', an optional second argument can be the API key.
-
-    Examples:
-        $ yolo login YOUR_API_KEY
-
-    Notes:
-        - The function imports the 'hub' module from ultralytics to perform login and logout operations.
-        - For the 'login' command, if no API key is provided, an empty string is passed to the login function.
-        - The 'logout' command does not require any additional arguments.
-    """
-    from ultralytics import hub
-
-    if args[0] == "login":
-        key = args[1] if len(args) > 1 else ""
-        # Log in to Ultralytics HUB using the provided API key
-        hub.login(key)
-    elif args[0] == "logout":
-        # Log out from Ultralytics HUB
-        hub.logout()
-
-
 def handle_yolo_settings(args: list[str]) -> None:
     """Handle YOLO settings command-line interface (CLI) commands.
 
@@ -722,115 +604,6 @@ def handle_yolo_settings(args: list[str]) -> None:
         LOGGER.info(f"💡 Learn more about Ultralytics Settings at {url}")
     except Exception as e:
         LOGGER.warning(f"settings error: '{e}'. Please see {url} for help.")
-
-
-def handle_yolo_solutions(args: list[str]) -> None:
-    """Process YOLO solutions arguments and run the specified computer vision solutions pipeline.
-
-    Args:
-        args (list[str]): Command-line arguments for configuring and running the Ultralytics YOLO solutions.
-
-    Examples:
-        Run people counting solution with default settings:
-        >>> handle_yolo_solutions(["count"])
-
-        Run analytics with custom configuration:
-        >>> handle_yolo_solutions(["analytics", "conf=0.25", "source=path/to/video.mp4"])
-
-        Run inference with custom configuration, requires Streamlit version 1.29.0 or higher.
-        >>> handle_yolo_solutions(["inference", "model=yolo26n.pt"])
-
-    Notes:
-        - Arguments can be provided in the format 'key=value' or as boolean flags
-        - Available solutions are defined in SOLUTION_MAP with their respective classes and methods
-        - If an invalid solution is provided, defaults to 'count' solution
-        - Output videos are saved in 'runs/solutions/exp' directory
-        - For 'analytics' solution, frame numbers are tracked for generating analytical graphs
-        - Video processing can be interrupted by pressing 'q'
-        - Processes video frames sequentially and saves output in .avi format
-        - If no source is specified, downloads and uses a default sample video
-        - The inference solution will be launched using the 'streamlit run' command.
-        - The Streamlit app file is located in the Ultralytics package directory.
-    """
-    from ultralytics.solutions.config import SolutionConfig
-
-    full_args_dict = vars(SolutionConfig())  # arguments dictionary
-    overrides = {}
-
-    # check dictionary alignment
-    for arg in merge_equals_args(args):
-        arg = arg.lstrip("-").rstrip(",")
-        if "=" in arg:
-            try:
-                k, v = parse_key_value_pair(arg)
-                overrides[k] = v
-            except (NameError, SyntaxError, ValueError, AssertionError) as e:
-                check_dict_alignment(full_args_dict, {arg: ""}, e)
-        elif arg in full_args_dict and isinstance(full_args_dict.get(arg), bool):
-            overrides[arg] = True
-    check_dict_alignment(full_args_dict, overrides)  # dict alignment
-
-    # Get solution name
-    if not args:
-        LOGGER.warning("No solution name provided. i.e `yolo solutions count`. Defaulting to 'count'.")
-        args = ["count"]
-    if args[0] == "help":
-        LOGGER.info(SOLUTIONS_HELP_MSG)
-        return  # Early return for 'help' case
-    elif args[0] in SOLUTION_MAP:
-        solution_name = args.pop(0)  # Extract the solution name directly
-    else:
-        LOGGER.warning(
-            f"❌ '{args[0]}' is not a valid solution. 💡 Defaulting to 'count'.\n"
-            f"🚀 Available solutions: {', '.join(list(SOLUTION_MAP.keys())[:-1])}\n"
-        )
-        solution_name = "count"  # Default for invalid solution
-
-    if solution_name == "inference":
-        checks.check_requirements("streamlit>=1.29.0")
-        LOGGER.info("💡 Loading Ultralytics live inference app...")
-        subprocess.run(
-            [  # Run subprocess with Streamlit custom argument
-                "streamlit",
-                "run",
-                str(ROOT / "solutions/streamlit_inference.py"),
-                "--server.headless",
-                "true",
-                overrides.pop("model", "yolo26n.pt"),
-            ]
-        )
-    else:
-        import cv2  # Only needed for cap and vw functionality
-
-        from ultralytics import solutions
-
-        solution = getattr(solutions, SOLUTION_MAP[solution_name])(is_cli=True, **overrides)  # class i.e. ObjectCounter
-
-        cap = cv2.VideoCapture(solution.CFG["source"])  # read the video file
-        if solution_name != "crop":
-            # extract width, height and fps of the video file, create save directory and initialize video writer
-            w, h, fps = (
-                int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS)
-            )
-            if solution_name == "analytics":  # analytical graphs follow fixed shape for output i.e w=1280, h=720
-                w, h = 1280, 720
-            save_dir = get_save_dir(SimpleNamespace(task="solutions", name="exp", exist_ok=False, project=None))
-            save_dir.mkdir(parents=True, exist_ok=True)  # create the output directory i.e. runs/solutions/exp
-            vw = cv2.VideoWriter(str(save_dir / f"{solution_name}.avi"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-
-        try:  # Process video frames
-            f_n = 0  # frame number, required for analytical graphs
-            while cap.isOpened():
-                success, frame = cap.read()
-                if not success:
-                    break
-                results = solution(frame, f_n := f_n + 1) if solution_name == "analytics" else solution(frame)
-                if solution_name != "crop":
-                    vw.write(results.plot_im)
-                if solution.CFG["show"] and cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-        finally:
-            cap.release()
 
 
 def parse_key_value_pair(pair: str = "key=value") -> tuple:
@@ -949,12 +722,8 @@ def entrypoint(debug: str = "") -> None:
         "version": lambda: LOGGER.info(__version__),
         "settings": lambda: handle_yolo_settings(args[1:]),
         "cfg": lambda: YAML.print(DEFAULT_CFG_PATH),
-        "hub": lambda: handle_yolo_hub(args[1:]),
-        "login": lambda: handle_yolo_hub(args),
-        "logout": lambda: handle_yolo_hub(args),
         "copy-cfg": copy_default_cfg,
-        "solutions": lambda: handle_yolo_solutions(args[1:]),
-        "help": lambda: LOGGER.info(CLI_HELP_MSG),  # help below hub for -h flag precedence
+        "help": lambda: LOGGER.info(CLI_HELP_MSG),
     }
     full_args_dict = {**DEFAULT_CFG_DICT, **{k: None for k in TASKS}, **{k: None for k in MODES}, **special}
 
@@ -1016,43 +785,19 @@ def entrypoint(debug: str = "") -> None:
     task = overrides.pop("task", None)
     if task:
         if task not in TASKS:
-            if task == "track":
-                LOGGER.warning(
-                    f"invalid 'task=track', setting 'task=detect' and 'mode=track'. Valid tasks are {list(TASKS)}.\n{CLI_HELP_MSG}."
-                )
-                task, mode = "detect", "track"
-            else:
-                raise ValueError(f"Invalid 'task={task}'. Valid tasks are {list(TASKS)}.\n{CLI_HELP_MSG}")
+            raise ValueError(f"Invalid 'task={task}'. Valid tasks are {list(TASKS)}.\n{CLI_HELP_MSG}")
         if "model" not in overrides:
             overrides["model"] = TASK2MODEL[task]
 
     # Model
     model = overrides.pop("model", DEFAULT_CFG.model)
     if model is None:
-        model = "yolo26n.pt"
+        model = "yolo26n-seg.pt"
         LOGGER.warning(f"'model' argument is missing. Using default 'model={model}'.")
     overrides["model"] = model
-    stem = Path(model).stem.lower()
-    if "rtdetr" in stem:  # guess architecture
-        from ultralytics import RTDETR
+    from ultralytics import YOLO
 
-        model = RTDETR(model)  # no task argument
-    elif "fastsam" in stem:
-        from ultralytics import FastSAM
-
-        model = FastSAM(model)
-    elif "sam_" in stem or "sam2_" in stem or "sam2.1_" in stem:
-        from ultralytics import SAM
-
-        model = SAM(model)
-    else:
-        from ultralytics import YOLO
-
-        model = YOLO(model, task=task)
-        if "yoloe" in stem or "world" in stem:
-            cls_list = overrides.pop("classes", DEFAULT_CFG.classes)
-            if cls_list is not None and isinstance(cls_list, str):
-                model.set_classes([c.strip() for c in cls_list.split(",")])  # "person, bus" -> ['person', 'bus']
+    model = YOLO(model, task=task)
     # Task Update
     if task != model.task:
         if task:
@@ -1063,7 +808,7 @@ def entrypoint(debug: str = "") -> None:
         task = model.task
 
     # Mode
-    if mode in {"predict", "track"} and "source" not in overrides:
+    if mode == "predict" and "source" not in overrides:
         overrides["source"] = (
             "https://ultralytics.com/images/boats.jpg" if task == "obb" else DEFAULT_CFG.source or ASSETS
         )

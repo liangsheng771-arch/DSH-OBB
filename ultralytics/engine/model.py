@@ -1,4 +1,4 @@
-# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+﻿# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class Model(torch.nn.Module):
 
     This class provides a common interface for various operations related to YOLO models, such as training, validation,
     prediction, exporting, and benchmarking. It handles different types of models, including those loaded from local
-    files, Ultralytics HUB, or Triton Server.
+    files or Triton Server.
 
     Attributes:
         callbacks (dict): A dictionary of callback functions for various events during model operations.
@@ -43,7 +43,6 @@ class Model(torch.nn.Module):
         ckpt_path (str): The path to the checkpoint file.
         overrides (dict): A dictionary of overrides for model configuration.
         metrics (ultralytics.utils.metrics.DetMetrics): The latest training/validation metrics.
-        session (HUBTrainingSession): The Ultralytics HUB session, if applicable.
         task (str): The type of task the model is intended for.
         model_name (str): The name of the model.
 
@@ -92,14 +91,13 @@ class Model(torch.nn.Module):
 
         Args:
             model (str | Path | Model): Path or name of the model to load or create. Can be a local file path, a model
-                name from Ultralytics HUB, a Triton Server model, or an already initialized Model instance.
+                name of a Triton Server model, or an already initialized Model instance.
             task (str, optional): The specific task for the model. If None, it will be inferred from the config.
             verbose (bool): If True, enables verbose output during the model's initialization and subsequent operations.
 
         Raises:
             FileNotFoundError: If the specified model file does not exist or is inaccessible.
             ValueError: If the model file or configuration is invalid or unsupported.
-            ImportError: If required dependencies for specific model types (like HUB SDK) are not installed.
         """
         if isinstance(model, Model):
             self.__dict__ = model.__dict__  # accepts an already initialized Model
@@ -114,24 +112,12 @@ class Model(torch.nn.Module):
         self.ckpt_path = None
         self.overrides = {}  # overrides for trainer object
         self.metrics = None  # validation/training metrics
-        self.session = None  # HUB session
         self.task = task  # task type
         self.model_name = None  # model name
         model = str(model).strip()
 
-        # Check if Ultralytics HUB model from https://hub.ultralytics.com
-        if self.is_hub_model(model):
-            from ultralytics.hub import HUBTrainingSession
-
-            # Fetch model from HUB
-            checks.check_requirements("hub-sdk>=0.0.12")
-            session = HUBTrainingSession.create_session(model)
-            model = session.model_file
-            if session.train_args:  # training sent from HUB
-                self.session = session
-
         # Check if Triton Server model
-        elif self.is_triton_model(model):
+        if self.is_triton_model(model):
             self.model_name = self.model = model
             self.overrides["task"] = task or "detect"  # set `task=detect` if not explicitly set
             return
@@ -199,29 +185,6 @@ class Model(torch.nn.Module):
 
         url = urlsplit(model)
         return url.netloc and url.path and url.scheme in {"http", "grpc"}
-
-    @staticmethod
-    def is_hub_model(model: str) -> bool:
-        """Check if the provided model is an Ultralytics HUB model.
-
-        This static method determines whether the given model string represents a valid Ultralytics HUB model
-        identifier.
-
-        Args:
-            model (str): The model string to check.
-
-        Returns:
-            (bool): True if the model is a valid Ultralytics HUB model, False otherwise.
-
-        Examples:
-            >>> Model.is_hub_model("https://hub.ultralytics.com/models/MODEL")
-            True
-            >>> Model.is_hub_model("yolo26n.pt")
-            False
-        """
-        from ultralytics.hub import HUB_WEB_ROOT
-
-        return model.startswith(f"{HUB_WEB_ROOT}/models/")
 
     def _new(self, cfg: str, task=None, model=None, verbose=False) -> None:
         """Initialize a new model and infer the task type from model definitions.
@@ -522,7 +485,7 @@ class Model(torch.nn.Module):
             LOGGER.warning(f"'source' is missing. Using 'source={source}'.")
 
         is_cli = (ARGV[0].endswith("yolo") or ARGV[0].endswith("ultralytics")) and any(
-            x in ARGV for x in ("predict", "track", "mode=predict", "mode=track")
+            x in ARGV for x in ("predict", "mode=predict")
         )
 
         custom = {"conf": 0.25, "batch": 1, "save": is_cli, "mode": "predict", "rect": True, "embed": None}
@@ -539,49 +502,6 @@ class Model(torch.nn.Module):
         if prompts and hasattr(self.predictor, "set_prompts"):  # for SAM-type models
             self.predictor.set_prompts(prompts)
         return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
-
-    def track(
-        self,
-        source: str | Path | int | list | tuple | np.ndarray | torch.Tensor = None,
-        stream: bool = False,
-        persist: bool = False,
-        **kwargs: Any,
-    ) -> list[Results]:
-        """Conduct object tracking on the specified input source using the registered trackers.
-
-        This method performs object tracking using the model's predictors and optionally registered trackers. It handles
-        various input sources such as file paths or video streams, and supports customization through keyword arguments.
-        The method registers trackers if not already present and can persist them between calls.
-
-        Args:
-            source (str | Path | int | list | tuple | np.ndarray | torch.Tensor, optional): Input source for object
-                tracking. Can be a file path, URL, or video stream.
-            stream (bool): If True, treats the input source as a continuous video stream.
-            persist (bool): If True, persists trackers between different calls to this method.
-            **kwargs (Any): Additional keyword arguments for configuring the tracking process.
-
-        Returns:
-            (list[ultralytics.engine.results.Results]): A list of tracking results, each a Results object.
-
-        Examples:
-            >>> model = YOLO("yolo26n.pt")
-            >>> results = model.track(source="path/to/video.mp4", show=True)
-            >>> for r in results:
-            ...     print(r.boxes.id)  # print tracking IDs
-
-        Notes:
-            - This method sets a default confidence threshold of 0.1 for ByteTrack-based tracking.
-            - The tracking mode is explicitly set in the keyword arguments.
-            - Batch size is set to 1 for tracking in videos.
-        """
-        if not hasattr(self.predictor, "trackers"):
-            from ultralytics.trackers import register_tracker
-
-            register_tracker(self, persist)
-        kwargs["conf"] = kwargs.get("conf") or 0.1  # ByteTrack-based method needs low confidence predictions as input
-        kwargs["batch"] = kwargs.get("batch") or 1  # batch-size 1 for tracking in videos
-        kwargs["mode"] = "track"
-        return self.predict(source=source, stream=stream, **kwargs)
 
     def val(
         self,
@@ -760,11 +680,6 @@ class Model(torch.nn.Module):
             >>> multi = model.train(data=["coco8.yaml", "african-wildlife.yaml"], epochs=3)  # fine-tune across datasets
         """
         self._check_is_pytorch_model()
-        if hasattr(self.session, "model") and self.session.model.id:  # Ultralytics HUB session with loaded model
-            if any(kwargs):
-                LOGGER.warning("using HUB training arguments, ignoring local training arguments.")
-            kwargs = self.session.train_args  # overwrite kwargs
-
         checks.check_pip_update_available()
 
         overrides = YAML.load(checks.check_yaml(kwargs["cfg"])) if kwargs.get("cfg") else self.overrides
@@ -776,7 +691,7 @@ class Model(torch.nn.Module):
             "model": self.overrides["model"],
             "task": self.task,
         }  # method defaults
-        args = {**overrides, **custom, **kwargs, "mode": "train", "session": self.session}  # prioritizes rightmost args
+        args = {**overrides, **custom, **kwargs, "mode": "train"}  # prioritizes rightmost args
         if isinstance(args.get("data"), (list, tuple)):  # fine-tune a single base model across multiple datasets
             from ultralytics.engine.trainer import MultiTrainer
 

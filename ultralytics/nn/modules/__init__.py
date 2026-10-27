@@ -107,7 +107,10 @@ from .transformer import (
     TransformerLayer,
 )
 
+from .resnet18 import ResNet18Layer
+
 __all__ = (
+    "ResNet18Layer",
     "AIFI",
     "C1",
     "C2",

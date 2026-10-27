@@ -1,0 +1,146 @@
+# SlotDCE V9.8 Detector-Lite
+# Single native forward for detector integration. Spatial information is
+# rearranged losslessly; exposure rendering and Retinex detail stay full size.
+
+architecture: slotdce_v9_8_detector_lite
+
+model:
+  num_slots: 5
+  feature_channels: 48
+  context_channels: 64
+
+  exposure_prior_strength: 1.25
+  full_resolution_prior_strength: 0.50
+  adaptive_prior_histogram_bins: 16
+  adaptive_prior_hidden_channels: 16
+  adaptive_prior_adaptation_ratio: 0.25
+  adaptive_prior_logit_limit: 1.00
+  adaptive_prior_width_to_sigma_ratio: 0.60
+
+  dark_threshold: 0.32
+  bright_curve_offset: 0.17
+  bright_curve_slope: 0.43
+  bright_high_start: 0.75
+  bright_high_rolloff: 0.10
+  bright_min_scale: 0.56
+
+  white_threshold: 0.72
+  white_saturation_threshold: 0.32
+  white_core_threshold: 0.90
+  white_local_contrast_threshold: 0.04
+  white_min_scale: 0.54
+  core_min_scale: 0.43
+
+  halo_threshold: 0.46
+  halo_saturation_threshold: 0.50
+  halo_local_contrast_threshold: 0.08
+  halo_min_scale: 0.68
+  halo_context_inner_kernel_size: 21
+  halo_context_outer_kernel_size: 81
+  halo_context_strength: 0.52
+  halo_maximum_fraction: 0.20
+  halo_neighbour_floor_ratio: 0.82
+  mask_temperature: 0.035
+
+  illumination_kernel_size: 63
+  white_expansion_kernel_size: 31
+  white_feather_kernel_size: 15
+  halo_expansion_kernel_size: 55
+  halo_feather_kernel_size: 21
+  halo_reference_size: 256
+
+  detail_kernel_sizes: [5, 13, 31]
+  detail_gain_anchors: [1.35, 1.22, 1.10]
+  detail_gain_adjustment_scale: 0.25
+  detail_compensation_scale: 1.00
+  detail_reliable_std: 0.003
+  detail_minimum_luminance: 0.03
+  detail_saturation_ceiling: 0.985
+
+  recovery_saturation_threshold: 0.985
+  recovery_context_kernel_size: 41
+  recovery_detail_kernel_size: 13
+  recovery_residual_scale: 0.30
+  recovery_detail_scale: 0.85
+  recovery_color_scale: 0.20
+  recovery_flat_std_threshold: 0.008
+
+  dark_max_strength: 0.98
+  white_max_strength: 0.98
+  minimum_strength: 0.10
+  strength_anchors: [0.72, 0.62, 0.00, 0.94, 0.97]
+  slot_adjustment_scale: 0.40
+  local_modulation_scale: 0.30
+  direction_minimum_fraction: 0.08
+  chroma_epsilon: 1.0e-6
+loss:
+  weights:
+    tone: 1.00
+    texture: 0.25
+    recovery: 0.50
+    smoothness: 0.05
+
+training:
+  train_dir: /home/zhangyu/zhangyuhang/dataset/Coal_mine/DSDPM6_k/images/train
+  output_dir: /home/zhangyu/zhangyuhang/proj/Slot-DCE/data/slotdce_runs/slotDCE_v9_8_detector_lite
+  batch_size: 32
+  epochs: 60
+  learning_rate: 0.00015
+  min_lr: 0.000005
+  weight_decay: 0.000001
+  gradient_clip: 5.0
+  mixed_precision: true
+  amp_dtype: bfloat16
+  amp_init_scale: 1024.0
+  amp_growth_interval: 4000
+  cache_images: true
+  cache_short_side: 384
+  cache_workers: 8
+  num_workers: 8
+  prefetch_factor: 2
+  pin_memory: true
+  drop_last: true
+  seed: 2026
+  channels_last: true
+  cudnn_benchmark: true
+  allow_tf32: true
+  fused_optimizer: true
+  strict_gradient_checks: true
+  validation_interval: 100
+  scale_range: [0.90, 1.10]
+  rotation_degrees: 0.0
+  horizontal_flip_probability: 0.5
+  exposure_sampling:
+    crop_size: 384
+    full_resize_probability: 0.30
+    random_crop_probability: 0.30
+    white_crop_probability: 0.20
+    mixed_crop_probability: 0.20
+    dark_threshold: 0.28
+    white_threshold: 0.70
+    thumbnail_size: 96
+    min_region_pixels: 1
+
+  saturation_simulation:
+    enabled: true
+    batch_fraction: 0.25
+    gain_range: [1.60, 2.40]
+    veil_range: [0.10, 0.30]
+    radius_range: [0.12, 0.30]
+    clip_threshold: 0.985
+    source_ceiling: 0.97
+    minimum_source_luminance: 0.45
+    maximum_source_saturation: 0.45
+
+  log_interval: 100
+  tensorboard_interval: 200
+  checkpoint_interval: 5
+  visualize_interval: 5
+  resume: null
+
+inference:
+  max_side: 1280
+  batch_size: 4
+  num_workers: 4
+  channels_last: true
+  mixed_precision: true

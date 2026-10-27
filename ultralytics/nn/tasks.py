@@ -62,6 +62,7 @@ from ultralytics.nn.modules import (
     RepNCSPELAN4,
     RepVGGDW,
     ResNetLayer,
+    ResNet18Layer,
     RTDETRDecoder,
     SCDown,
     Segment,
@@ -1981,6 +1982,10 @@ def parse_model(d, ch, verbose=True):
                 n = 1
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
+        elif m is ResNet18Layer:
+            if args[0] != ch[f]:
+                raise ValueError(f"ResNet18Layer expects {args[0]} input channels, got {ch[f]}")
+            c2 = args[1]
         elif m is torch.nn.BatchNorm2d:
             args = [ch[f]]
         elif m is Concat:

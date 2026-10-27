@@ -1,4 +1,4 @@
-# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+﻿# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
 Benchmark YOLO model formats for speed and accuracy.
 
@@ -39,7 +39,7 @@ from pathlib import Path
 import numpy as np
 import torch.cuda
 
-from ultralytics import RTDETR, YOLO, YOLOWorld
+from ultralytics import YOLO
 from ultralytics.cfg import TASK2DATA, TASK2METRIC
 from ultralytics.engine.exporter import export_formats
 from ultralytics.nn.modules import Segment26
@@ -139,10 +139,7 @@ def benchmark(
                 assert not (MACOS and IS_PYTHON_MINIMUM_3_13), (
                     "CoreML not benchmarked on macOS Python>=3.13 (coremltools/OpenVINO OpenMP deadlock)"
                 )
-            if format in {"saved_model", "pb", "edgetpu"}:
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 TensorFlow exports not supported by onnx2tf yet"
             if format == "paddle":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 Paddle exports not supported yet"
                 assert model.task != "obb", "Paddle OBB bug https://github.com/PaddlePaddle/Paddle/issues/72024"
                 assert (LINUX and not IS_JETSON) or MACOS, "Windows and Jetson Paddle exports not supported yet"
                 # PaddlePaddle export works standalone on Python 3.13 but its native protobuf clashes with the
@@ -151,28 +148,20 @@ def benchmark(
                     "PaddlePaddle not benchmarked on Python>=3.13 (protobuf ABI conflict with TensorFlow)"
                 )
             if format == "mnn":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 MNN exports not supported yet"
                 # MNN export works standalone on Python 3.13 but its ONNX-parsing protobuf clashes with the
                 # protobuf>=6.31.1 that TensorFlow loads earlier in this shared benchmark process, aborting the run.
                 assert not IS_PYTHON_MINIMUM_3_13, (
                     "MNN not benchmarked on Python>=3.13 (protobuf ABI conflict with TensorFlow)"
                 )
-            if format == "ncnn":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 NCNN exports not supported yet"
             if format == "imx":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 IMX exports not supported"
-                assert model.task in {"detect", "classify", "pose", "segment"}, (
-                    "IMX export is only supported for detection, classification, pose estimation and segmentation tasks"
+                assert model.task == "segment", (
+                    "IMX export is only supported for segmentation in this trimmed build"
                 )
                 assert "C2f" in model.__str__(), "IMX only supported for YOLOv8n and YOLO11n"
             if format == "rknn":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 RKNN exports not supported yet"
                 assert LINUX, "RKNN only supported on Linux"
                 assert not is_rockchip(), "RKNN Inference only supported on Rockchip devices"
-            if format == "executorch":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 ExecuTorch exports not supported yet"
             if format == "axelera":
-                assert not isinstance(model, YOLOWorld), "YOLOWorldv2 Axelera exports not supported"
                 assert LINUX and not (ARM64 and IS_DOCKER), (
                     "export is only supported on Linux and is not supported on ARM64 Docker."
                 )
@@ -206,7 +195,7 @@ def benchmark(
                     verbose=False,
                     **kwargs,
                 )
-                exported_model = RTDETR(filename) if isinstance(model, RTDETR) else YOLO(filename, task=model.task)
+                exported_model = YOLO(filename, task=model.task)
                 assert suffix in str(filename), "export failed"
             emoji = "❎"  # indicates export succeeded
 
